@@ -44,7 +44,6 @@ async def get_users(
     }
 
 
-
 @router.get("/{user_id}", response_model=UserRead)
 async def get_user(item_id: int, db: AsyncSession = Depends(get_db)):
     """ Получение данных по конкретной записи модели """

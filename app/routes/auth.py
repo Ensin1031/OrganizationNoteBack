@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy import select, or_, exists
+from sqlalchemy import select, or_, exists, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -20,7 +20,20 @@ router = APIRouter(
 @router.post("/login/", response_model=AuthResponse)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
-    qs = await db.execute(select(User).where(User.login == data.login).limit(1))
+    search_value = data.login.lower().strip() if data.login and isinstance(data.login, str) else ""
+
+    if not search_value or not data.password:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Введены некорректные значения",
+        )
+
+    qs = await db.execute(select(User).where(
+        or_(
+            func.lower(User.login) == search_value,
+            func.lower(User.email) == search_value
+        )
+    ).limit(1))
     user: Optional[User] = qs.scalars().one_or_none()
 
     if user is None or not (
@@ -45,8 +58,8 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(select(
         exists(User).where(
             or_(
-                User.email == data.email,
-                User.login == data.login,
+                func.lower(User.email) == data.email.lower().strip(),
+                func.lower(User.login) == data.login.lower().strip(),
             )
         )
     ))
@@ -62,8 +75,8 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
     user = User(
         name=data.name,
-        login=data.login,
-        email=data.email,
+        login=data.login.lower().strip(),
+        email=data.email.lower().strip(),
         password=hashed,
         salt=salt,
         is_admin=False,

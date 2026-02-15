@@ -1,9 +1,6 @@
 from datetime import datetime, timezone, timedelta
 
 import jwt
-from sqlalchemy import select, exists
-
-from app.db.database import SyncSessionLocal, AsyncSessionLocal
 from app.db.models import User
 
 
