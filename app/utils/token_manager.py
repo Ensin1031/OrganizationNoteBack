@@ -33,7 +33,7 @@ class TokenManager:
         except Exception:
             return None
 
-    def verify_token(self, token: str):
+    def verify_token(self, token: str) -> bool:
         if token is None:
             return False
 

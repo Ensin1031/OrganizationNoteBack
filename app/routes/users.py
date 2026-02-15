@@ -1,16 +1,19 @@
+from typing import Optional
+
 from fastapi import HTTPException, Depends, APIRouter, Query
-from sqlalchemy import select, func
+from sqlalchemy import select, func, exists, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.db import get_db
 from app.db.models.users import User
-from app.schemas import UserRead, UserCreate, UserUpdate, PaginatedResponse, UserPut
+from app.schemas import UserRead, UserUpdate, PaginatedResponse
+from app.utils.password_hasher import PasswordHasher
+from app.utils.request_with_token_data import get_current_user_id
 
 router = APIRouter(
     prefix='/users',
     tags=["Пользователи"],
-    # dependencies=[Depends(request_shoule_be_with_token)]
 )
 
 
@@ -54,82 +57,75 @@ async def get_user(item_id: int, db: AsyncSession = Depends(get_db)):
     return db_item
 
 
-@router.post("/", response_model=UserRead)
-async def create_item(
-    user: UserCreate,
+@router.patch("/{user_id}/", response_model=UserRead)
+async def update_user(
+    user_id: int,
+    user: UserUpdate,
     db: AsyncSession = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
 ):
-    db_item = User(name=user.name, user=user.count)
-    db.add(db_item)
-    await db.commit()
-    await db.refresh(db_item)
-    return db_item
-
-
-@router.patch("/{item_id}", response_model=UserRead)
-async def update_item(
-    item_id: int,
-    item: UserUpdate,
-    db: AsyncSession = Depends(get_db),
-):
-    """ Обновление записи модели """
-    result = await db.execute(select(User).where(User.id == item_id))
-    db_item = result.scalar_one_or_none()
-
-    if not db_item:
+    """
+    Обновление записи модели
+    По данному хвосту смена данных пользователя доступна ТОЛЬКО самому себе
+    """
+    if current_user_id != user_id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
+            status_code=403,
+            detail="Not enough permissions"
         )
 
-    if item.name is not None:
-        db_item.name = item.name
-    if item.count is not None:
-        db_item.count = item.count
-
-    db.add(db_item)
-    await db.commit()
-    await db.refresh(db_item)
-    return db_item
-
-
-@router.put("/{item_id}", response_model=UserRead)
-async def replace_item(
-    item_id: int,
-    item: UserPut,
-    db: AsyncSession = Depends(get_db),
-):
-    """ Перезапись записи модели """
-    result = await db.execute(select(User).where(User.id == item_id))
-    db_item = result.scalar_one_or_none()
-    if not db_item:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    db_item.name = item.name
-    db_item.count = item.count
-
-    db.add(db_item)
-    await db.commit()
-    await db.refresh(db_item)
-    return db_item
-
-
-@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_item(
-    item_id: int,
-    db: AsyncSession = Depends(get_db),
-):
-    """ Удаление записи модели """
     result = await db.execute(
-        select(User).where(User.id == item_id)
+        select(User).where(
+            User.id == user_id)
     )
-    item = result.scalar_one_or_none()
+    db_item: Optional[User] = result.scalar_one_or_none()
 
-    if not item:
+    if not db_item:
+        # Этот вариант скорее невозможен, прописываю на всякий случай
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
 
-    await db.delete(item)
+    if user.name and user.name.lower().strip() != db_item.name.lower().strip():
+        # проверим на наличие значения
+        db_item.name = user.name
+
+    if user.login and user.login.lower().strip() != db_item.login.lower().strip():
+        # необходимо проверить на уникальность
+        existing = await db.execute(select(
+            exists(User).where(
+                and_(func.lower(User.login) == user.login.lower().strip())
+            )
+        ))
+
+        if existing.scalar():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Пользователь с таким логином уже зарегистрирован в системе"
+            )
+        db_item.login = user.login
+
+    if user.email and user.email.lower().strip() != db_item.email.lower().strip():
+        # необходимо проверить на уникальность
+        existing = await db.execute(select(
+            exists(User).where(
+                and_(func.lower(User.email) == user.email.lower().strip())
+            )
+        ))
+
+        if existing.scalar():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "Пользователь с таким Email уже зарегистрирован в системе"
+            )
+        db_item.email = user.email
+
+    if user.password:
+        if not PasswordHasher.verify_password(user.password, db_item.password, db_item.salt):
+            db_item.password = PasswordHasher.hash_password(user.password, db_item.salt)
+
+    db.add(db_item)
     await db.commit()
+    await db.refresh(db_item)
+    return db_item
