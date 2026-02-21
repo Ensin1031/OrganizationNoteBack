@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy import select, or_, exists, func
+from sqlalchemy import select, or_, exists, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -55,19 +55,32 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 @router.post("/register/", response_model=AuthResponse)
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
 
-    existing = await db.execute(select(
-        exists(User).where(
-            or_(
-                func.lower(User.email) == data.email.lower().strip(),
-                func.lower(User.login) == data.login.lower().strip(),
-            )
-        )
+    errors = {}
+    email_existing = await db.execute(select(
+        exists(User).where(and_(
+            func.lower(User.email) == data.email.lower().strip(),
+        ))
     ))
 
-    if existing.scalar():
+    if email_existing.scalar():
+        errors['login'] = "Пользователь с таким Email уже зарегистрирован в системе"
+
+    login_existing = await db.execute(select(
+        exists(User).where(and_(
+            func.lower(User.login) == data.login.lower().strip(),
+        ))
+    ))
+
+    if login_existing.scalar():
+        errors['login'] = "Пользователь с таким логином уже зарегистрирован в системе"
+
+    if len(data.password) <= 4:  # пока так, как пример минимальной валидации.
+        errors['password'] = "Ненадежный пароль"
+
+    if errors or len(errors.keys()) > 0:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Пользователь с таким логином или Email уже зарегистрирован в системе"
+            errors
         )
 
     salt = PasswordHasher.generate_salt()
