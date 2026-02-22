@@ -1,8 +1,11 @@
-from sqlalchemy import Integer, String, Boolean, select, exists
+import datetime
+
+from sqlalchemy import Integer, String, Boolean, select, exists, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
 from app.db.database import SyncSessionLocal
+from app.utils.gender_enum import GenderType
 
 
 class User(Base):
@@ -37,6 +40,29 @@ class User(Base):
     salt: Mapped[str] = mapped_column(
         String,
         nullable=False,
+    )
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime,
+        default=datetime.datetime.now(),
+        doc='Дата и время создания записи',
+        comment='Дата и время создания записи',
+    )
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime,
+        default=datetime.datetime.now(),
+        onupdate=datetime.datetime.now(),
+        doc='Дата и время последнего обновления записи',
+        comment='Дата и время последнего обновления записи',
+    )
+    birthdate_at: Mapped[DateTime] = mapped_column(
+        DateTime,
+        nullable=True,
+        default=None,
+    )
+    gender: Mapped[GenderType] = mapped_column(
+        Enum(GenderType),
+        nullable=False,
+        default=GenderType.UNSET,
     )
     verified: Mapped[bool] = mapped_column(
         Boolean,

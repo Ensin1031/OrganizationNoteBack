@@ -87,11 +87,11 @@ class Settings(BaseSettings):
 
     # Пути к БД
     sqlite_url: str = Field(
-        default="./licence.db",  # "sqlite+aiosqlite:///./licence.db",
+        default="./work_notebook.db",  # "sqlite+aiosqlite:///./work_notebook.db",
         description="SQLite DB URL",
     )
     sqlite_url_alembic: str = Field(
-        default="sqlite:///./licence.db",
+        default="sqlite:///./work_notebook.db",
         description="SQLite DB URL FOR ALEMBIC (SHOULD BE SYNC)",
     )
 
