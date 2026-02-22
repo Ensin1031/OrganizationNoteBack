@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, Field
 
 
 class UserRead(BaseModel):
     """ для GET """
-    id: int
+    external_id: int = Field(validation_alias='id')
     name: str
     login: str
     email: str
@@ -17,7 +17,10 @@ class UserRead(BaseModel):
     birthdate_at: Optional[datetime] = None
     gender: int
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )
 
     @field_serializer('created_at', 'updated_at', 'birthdate_at')
     def serialize_datetime(self, value: Optional[datetime]) -> Optional[int]:
