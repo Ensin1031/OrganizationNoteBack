@@ -9,6 +9,7 @@ from starlette import status
 from app.db import get_db
 from app.db.models.users import User
 from app.schemas import UserRead, UserUpdate, PaginatedResponse
+from app.utils.gender_enum import GenderType
 from app.utils.password_hasher import PasswordHasher
 from app.utils.request_with_token_data import get_current_user_id
 
@@ -136,6 +137,21 @@ async def update_user(
                 detail="Пользователь с таким Email уже зарегистрирован в системе"
             )
         db_item.email = user.email
+
+    if user.gender is not None:
+        try:
+            new_gender = GenderType(user.gender)
+        except Exception:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Некорректное значение пола",
+            )
+        if new_gender == db_item.gender:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Установите новое значение"
+            )
+        db_item.gender = new_gender
 
     if user.birthdate_at:
         try:
