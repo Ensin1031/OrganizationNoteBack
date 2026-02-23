@@ -51,8 +51,10 @@ class UserUpdate(BaseModel):
     login: str | None = None
     email: str | None = None
     password: str | None = None
+    birthdate_at: int | None = None
+    gender: int | None = None
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
 
 class UserPut(BaseModel):

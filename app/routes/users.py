@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 
 from fastapi import HTTPException, Depends, APIRouter, Query
@@ -87,11 +88,21 @@ async def update_user(
             detail="User not found",
         )
 
-    if user.name and user.name.lower().strip() != db_item.name.lower().strip():
+    if user.name:
+        if user.name.strip() == db_item.name.strip():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Введите новое имя пользователя"
+            )
         # проверим на наличие значения
         db_item.name = user.name
 
-    if user.login and user.login.lower().strip() != db_item.login.lower().strip():
+    if user.login:
+        if user.login.strip() == db_item.login.strip():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Введите новый логин пользователя"
+            )
         # необходимо проверить на уникальность
         existing = await db.execute(select(
             exists(User).where(
@@ -102,11 +113,16 @@ async def update_user(
         if existing.scalar():
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                "Пользователь с таким логином уже зарегистрирован в системе"
+                detail="Пользователь с таким логином уже зарегистрирован в системе"
             )
         db_item.login = user.login
 
-    if user.email and user.email.lower().strip() != db_item.email.lower().strip():
+    if user.email:
+        if user.email.strip() == db_item.email.strip():
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Введите новый Email пользователя"
+            )
         # необходимо проверить на уникальность
         existing = await db.execute(select(
             exists(User).where(
@@ -117,13 +133,33 @@ async def update_user(
         if existing.scalar():
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
-                "Пользователь с таким Email уже зарегистрирован в системе"
+                detail="Пользователь с таким Email уже зарегистрирован в системе"
             )
         db_item.email = user.email
 
+    if user.birthdate_at:
+        try:
+            birthdate_at: datetime.datetime = datetime.datetime.fromtimestamp(user.birthdate_at / 1000.0)
+        except Exception as _e:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=str(_e),
+            )
+        if birthdate_at == db_item.birthdate_at:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Введите новую дату рождения пользователя"
+            )
+        db_item.birthdate_at = birthdate_at
+
     if user.password:
-        if not PasswordHasher.verify_password(user.password, db_item.password, db_item.salt):
-            db_item.password = PasswordHasher.hash_password(user.password, db_item.salt)
+        # TODO реализовать смену пароля
+        if len(user.password) <= 4:  # пока так, как пример минимальной валидации.
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Ненадежный пароль"
+            )
+        db_item.password = PasswordHasher.hash_password(user.password, db_item.salt)
 
     db.add(db_item)
     await db.commit()
