@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.db import get_db
-from app.db.models.users import User
+from app.db.models.users import User, TIMESTAMP_1900
 from app.schemas import UserRead, UserUpdate, PaginatedResponse
 from app.utils.gender_enum import GenderType
 from app.utils.password_hasher import PasswordHasher
@@ -154,13 +154,16 @@ async def update_user(
         db_item.gender = new_gender
 
     if user.birthdate_at:
-        try:
-            birthdate_at: datetime.datetime = datetime.datetime.fromtimestamp(user.birthdate_at / 1000.0)
-        except Exception as _e:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail=str(_e),
-            )
+        if user.birthdate_at <= TIMESTAMP_1900:
+            birthdate_at = None
+        else:
+            try:
+                birthdate_at = datetime.datetime.fromtimestamp(user.birthdate_at / 1000.0, tz=datetime.timezone.utc)
+            except Exception as _e:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail=str(_e),
+                )
         if birthdate_at == db_item.birthdate_at:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
