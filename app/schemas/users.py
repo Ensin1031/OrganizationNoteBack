@@ -50,7 +50,8 @@ class UserUpdate(BaseModel):
     name: str | None = None
     login: str | None = None
     email: str | None = None
-    password: str | None = None
+    old_password: str | None = None
+    new_password: str | None = None
     birthdate_at: int | None = None
     gender: int | None = None
 

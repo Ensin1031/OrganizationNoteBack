@@ -171,14 +171,20 @@ async def update_user(
             )
         db_item.birthdate_at = birthdate_at
 
-    if user.password:
-        # TODO реализовать смену пароля
-        if len(user.password) <= 4:  # пока так, как пример минимальной валидации.
+    if user.new_password and user.old_password:
+        if not PasswordHasher.verify_password(user.old_password, db_item.password, db_item.salt):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail="Неверный пароль"
+            )
+        if len(user.new_password) <= 4:  # пока так, как пример минимальной валидации.
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 detail="Ненадежный пароль"
             )
-        db_item.password = PasswordHasher.hash_password(user.password, db_item.salt)
+        salt = PasswordHasher.generate_salt()
+        db_item.salt = salt
+        db_item.password = PasswordHasher.hash_password(user.new_password, salt)
 
     db.add(db_item)
     await db.commit()
