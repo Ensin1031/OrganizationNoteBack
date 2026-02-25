@@ -59,7 +59,7 @@ class Meeting(Base):
         onupdate=datetime.datetime.now(),
     )
 
-    meetings: Mapped[List["Note"]] = relationship(
+    notes: Mapped[List["Note"]] = relationship(
         "Note",
         back_populates="meeting",
     )

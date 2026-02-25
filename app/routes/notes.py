@@ -73,7 +73,7 @@ async def create_licence_user(
             detail="Not enough permissions"
         )
     try:
-        priority = NotePriority(note.priority)
+        priority = getattr(NotePriority, note.priority)
     except Exception:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,

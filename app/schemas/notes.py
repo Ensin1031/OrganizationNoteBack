@@ -8,8 +8,8 @@ class NoteRead(BaseModel):
     """ для GET """
     external_id: int = Field(validation_alias='id')
     external_user_id: int = Field(validation_alias='user_id')
-    external_parent_note_id: int = Field(validation_alias='parent_note_id')
-    external_meeting_id: int = Field(validation_alias='meeting_id')
+    external_parent_note_id: Optional[int] = Field(validation_alias='parent_note_id', default=None)
+    external_meeting_id: Optional[int] = Field(validation_alias='meeting_id', default=None)
     title: str
     content: str
     created_at: datetime
