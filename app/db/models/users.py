@@ -1,11 +1,15 @@
 import datetime
+from typing import List, TYPE_CHECKING
 
 from sqlalchemy import Integer, String, Boolean, select, exists, DateTime, Enum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 from app.db.database import SyncSessionLocal
 from app.utils.gender_enum import GenderType
+
+if TYPE_CHECKING:
+    from app.db.models import Note, Meeting
 
 TIMESTAMP_1900 = -2208988800000
 
@@ -46,15 +50,11 @@ class User(Base):
     created_at: Mapped[DateTime] = mapped_column(
         DateTime,
         default=datetime.datetime.now(),
-        doc='Дата и время создания записи',
-        comment='Дата и время создания записи',
     )
     updated_at: Mapped[DateTime] = mapped_column(
         DateTime,
         default=datetime.datetime.now(),
         onupdate=datetime.datetime.now(),
-        doc='Дата и время последнего обновления записи',
-        comment='Дата и время последнего обновления записи',
     )
     birthdate_at: Mapped[DateTime] = mapped_column(
         DateTime,
@@ -75,6 +75,15 @@ class User(Base):
         Boolean,
         default=False,
         index=True,
+    )
+
+    notes: Mapped[List["Note"]] = relationship(
+        "Note",
+        back_populates="user",
+    )
+    meetings: Mapped[List["Meeting"]] = relationship(
+        "Meeting",
+        back_populates="user",
     )
 
     @classmethod

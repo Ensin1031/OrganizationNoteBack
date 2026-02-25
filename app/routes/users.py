@@ -1,14 +1,14 @@
 import datetime
 from typing import Optional
 
-from fastapi import HTTPException, Depends, APIRouter, Query
+from fastapi import HTTPException, Depends, APIRouter
 from sqlalchemy import select, func, exists, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.db import get_db
 from app.db.models.users import User, TIMESTAMP_1900
-from app.schemas import UserRead, UserUpdate, PaginatedResponse
+from app.schemas import UserRead, UserUpdate
 from app.utils.gender_enum import GenderType
 from app.utils.password_hasher import PasswordHasher
 from app.utils.request_with_token_data import get_current_user_id
@@ -17,46 +17,6 @@ router = APIRouter(
     prefix='/users',
     tags=["Пользователи"],
 )
-
-
-@router.get("/", response_model=PaginatedResponse[UserRead])
-async def get_users(
-    page: int = Query(1, ge=1, description="Номер страницы"),
-    size: int = Query(20, ge=1, le=100, description="Размер страницы"),
-    db: AsyncSession = Depends(get_db),
-):
-    """ Получение данных по списку записей модели """
-
-    base_stmt = select(User)
-
-    count_stmt = select(func.count()).select_from(base_stmt.subquery())
-    count = await db.scalar(count_stmt)
-
-    stmt = (
-        base_stmt
-        .offset((page - 1) * size)
-        .limit(size)
-    )
-
-    result = await db.execute(stmt)
-    results = result.scalars().all()
-
-    return {
-        "results": results,
-        "page": page,
-        "page_size": size,
-        "count": count,
-    }
-
-
-@router.get("/{user_id}", response_model=UserRead)
-async def get_user(item_id: int, db: AsyncSession = Depends(get_db)):
-    """ Получение данных по конкретной записи модели """
-    result = await db.execute(select(User).where(User.id == item_id))
-    db_item = result.scalar_one_or_none()
-    if not db_item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
-    return db_item
 
 
 @router.patch("/{user_id}/", response_model=UserRead)
