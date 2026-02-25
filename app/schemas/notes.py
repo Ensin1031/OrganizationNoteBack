@@ -1,7 +1,9 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, field_serializer, Field
+
+from app.utils.note_priority_enum import NotePriority
 
 
 class NoteRead(BaseModel):
@@ -27,6 +29,25 @@ class NoteRead(BaseModel):
         if value is None:
             return None
         return int(value.timestamp()) * 1000
+
+    @field_serializer('priority')
+    def serialize_priority(self, value: Optional[Union[int, str, NotePriority]]) -> str:
+        """ Преобразует NotePriority.name """
+        if value is None:
+            return ""
+        if isinstance(value, NotePriority):
+            return value.name
+        if isinstance(value, str):
+            try:
+                return NotePriority(int(value)).name
+            except Exception:
+                return ""
+        if isinstance(value, int):
+            try:
+                return NotePriority(value).name
+            except Exception:
+                return ""
+        return ""
 
 
 class NoteCreate(BaseModel):
