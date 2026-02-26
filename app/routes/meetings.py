@@ -52,10 +52,10 @@ async def get_meetings(
     response_model=MeetingRead,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_licence_user(
-        meeting: MeetingCreate,
-        db: AsyncSession = Depends(get_db),
-        current_user_id: int = Depends(get_current_user_id),
+async def create_meeting(
+    meeting: MeetingCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
 ):
     if current_user_id != meeting.external_user_id:
         raise HTTPException(
@@ -75,6 +75,8 @@ async def create_licence_user(
             )
 
         s_fields["created_at"] = created_at
+    else:
+        s_fields["created_at"] = datetime.datetime.now(tz=datetime.timezone.utc)
 
     if meeting.updated_at is not None:
         try:
@@ -86,6 +88,8 @@ async def create_licence_user(
             )
 
         s_fields["updated_at"] = updated_at
+    else:
+        s_fields["updated_at"] = datetime.datetime.now(tz=datetime.timezone.utc)
 
     if meeting.meeting_at is not None:
         try:

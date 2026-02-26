@@ -51,12 +51,12 @@ class Meeting(Base):
     )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime,
-        default=datetime.datetime.now(),
+        default=datetime.datetime.now(tz=datetime.timezone.utc),
     )
     updated_at: Mapped[DateTime] = mapped_column(
         DateTime,
-        default=datetime.datetime.now(),
-        onupdate=datetime.datetime.now(),
+        default=datetime.datetime.now(tz=datetime.timezone.utc),
+        onupdate=datetime.datetime.now(tz=datetime.timezone.utc),
     )
 
     notes: Mapped[List["Note"]] = relationship(

@@ -62,7 +62,7 @@ async def get_notes(
     response_model=NoteRead,
     status_code=status.HTTP_201_CREATED,
 )
-async def create_licence_user(
+async def create_note(
     note: NoteCreate,
     db: AsyncSession = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id),
@@ -92,6 +92,8 @@ async def create_licence_user(
             )
 
         s_fields["created_at"] = created_at
+    else:
+        s_fields["created_at"] = datetime.datetime.now(tz=datetime.timezone.utc)
 
     if note.updated_at is not None:
         try:
@@ -103,6 +105,8 @@ async def create_licence_user(
             )
 
         s_fields["updated_at"] = updated_at
+    else:
+        s_fields["updated_at"] = datetime.datetime.now(tz=datetime.timezone.utc)
 
     db_item = Note(
         user_id=note.external_user_id,

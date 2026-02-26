@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -90,6 +91,8 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         name=data.name,
         login=data.login.lower().strip(),
         email=data.email.lower().strip(),
+        created_at=datetime.datetime.now(tz=datetime.timezone.utc),
+        updated_at=datetime.datetime.now(tz=datetime.timezone.utc),
         password=hashed,
         salt=salt,
         is_admin=False,
