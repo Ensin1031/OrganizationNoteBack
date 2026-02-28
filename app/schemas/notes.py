@@ -61,8 +61,8 @@ class NoteCreate(BaseModel):
     title: str
     content: str
     priority: str
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: Optional[int] = None
+    updated_at: Optional[int] = None
     is_active: bool
 
     model_config = ConfigDict(extra="ignore")
