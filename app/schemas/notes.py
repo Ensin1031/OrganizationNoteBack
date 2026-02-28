@@ -17,6 +17,7 @@ class NoteRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     priority: str
+    is_active: bool
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -60,6 +61,22 @@ class NoteCreate(BaseModel):
     priority: str
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    is_active: bool
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class NoteSync(BaseModel):
+    external_id: Optional[int] = None
+    external_user_id: int
+    external_parent_note_id: Optional[int] = None
+    external_meeting_id: Optional[int] = None
+    title: str
+    content: str
+    priority: str
+    created_at: Optional[int] = None
+    updated_at: Optional[int] = None
+    is_active: bool
 
     model_config = ConfigDict(extra="ignore")
 

@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Integer, String, DateTime, ForeignKey
+from sqlalchemy import Integer, String, DateTime, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import TYPE_CHECKING, List
 
@@ -57,6 +57,11 @@ class Meeting(Base):
         DateTime,
         default=datetime.datetime.now(tz=datetime.timezone.utc),
         onupdate=datetime.datetime.now(tz=datetime.timezone.utc),
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        index=True,
     )
 
     notes: Mapped[List["Note"]] = relationship(
