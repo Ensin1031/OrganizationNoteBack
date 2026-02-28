@@ -63,7 +63,7 @@ async def get_notes(
     response_model=NoteRead,
     status_code=status.HTTP_200_OK,
 )
-async def create_note(
+async def sync_note(
     note: NoteSync,
     db: AsyncSession = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id),
@@ -224,6 +224,7 @@ async def create_note(
     await db.refresh(db_item)
 
     return db_item
+
 
 @router.delete(
     path="/{note_id}/",

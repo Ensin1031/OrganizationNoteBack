@@ -1,15 +1,13 @@
 import datetime
 
-from sqlalchemy import Integer, String, DateTime, ForeignKey, Boolean
+from sqlalchemy import Integer, String, DateTime, ForeignKey, Boolean, Time, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 from app.db import Base
 
 if TYPE_CHECKING:
     from app.db.models import User, Note
-
-TIMESTAMP_1900 = -2208988800000
 
 
 class Meeting(Base):
@@ -40,8 +38,22 @@ class Meeting(Base):
         index=True,
         default="",
     )
-    meeting_at: Mapped[DateTime | None] = mapped_column(
-        DateTime,
+    start_date: Mapped[datetime.date] = mapped_column(
+        Date,
+        nullable=False,
+        index=True,
+    )
+    start_time: Mapped[datetime.time] = mapped_column(
+        Time,
+        nullable=False,
+    )
+    end_date: Mapped[Optional[datetime.date]] = mapped_column(
+        Date,
+        nullable=True,
+        index=True,
+    )
+    end_time: Mapped[Optional[datetime.time]] = mapped_column(
+        Time,
         nullable=True,
     )
     location: Mapped[str] = mapped_column(
@@ -49,14 +61,14 @@ class Meeting(Base):
         index=True,
         default="",
     )
-    created_at: Mapped[DateTime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.now(tz=datetime.timezone.utc),
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
-    updated_at: Mapped[DateTime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.now(tz=datetime.timezone.utc),
-        onupdate=datetime.datetime.now(tz=datetime.timezone.utc),
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean,

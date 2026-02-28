@@ -1,5 +1,5 @@
 import datetime
-from typing import List, TYPE_CHECKING
+from typing import List, TYPE_CHECKING, Optional
 
 from sqlalchemy import Integer, String, Boolean, select, exists, DateTime, Enum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -47,17 +47,17 @@ class User(Base):
         String,
         nullable=False,
     )
-    created_at: Mapped[DateTime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.now(tz=datetime.timezone.utc),
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
-    updated_at: Mapped[DateTime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.now(tz=datetime.timezone.utc),
-        onupdate=datetime.datetime.now(tz=datetime.timezone.utc),
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
-    birthdate_at: Mapped[DateTime] = mapped_column(
-        DateTime,
+    birthdate_at: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True),
         nullable=True,
         default=None,
     )

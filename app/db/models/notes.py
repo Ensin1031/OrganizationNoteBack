@@ -10,8 +10,6 @@ from app.utils.note_priority_enum import NotePriority
 if TYPE_CHECKING:
     from app.db.models import User, Meeting
 
-TIMESTAMP_1900 = -2208988800000
-
 
 class Note(Base):
     """ Заметка пользователя """
@@ -68,14 +66,14 @@ class Note(Base):
         nullable=False,
         default=NotePriority.HIGH,
     )
-    created_at: Mapped[DateTime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.now(tz=datetime.timezone.utc),
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
-    updated_at: Mapped[DateTime] = mapped_column(
-        DateTime,
-        default=datetime.datetime.now(tz=datetime.timezone.utc),
-        onupdate=datetime.datetime.now(tz=datetime.timezone.utc),
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.datetime.now(datetime.timezone.utc),
+        onupdate=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean,
