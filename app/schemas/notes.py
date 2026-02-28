@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, field_serializer, Field
@@ -29,6 +29,8 @@ class NoteRead(BaseModel):
         """Преобразует datetime в Unix timestamp (целое число секунд)."""
         if value is None:
             return None
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
         return int(value.timestamp()) * 1000
 
     @field_serializer('priority')
