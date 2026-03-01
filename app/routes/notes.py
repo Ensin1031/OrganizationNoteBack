@@ -230,8 +230,7 @@ async def create_note(
 @router.delete(
     path="/{note_id}/",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary='Удаление записи пользователя лицензии',
-    description='Удаление записи лицензии. Мягкое удаление по дереву.',
+    summary='Удаление записи',
 )
 async def delete_note(
     note_id: int,
@@ -261,6 +260,7 @@ async def delete_note(
 
     if archive:
         note.is_active = False
+        db.add(note)
     else:
         await db.delete(note)
 

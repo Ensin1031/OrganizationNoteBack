@@ -91,7 +91,7 @@ async def create_meeting(
 
     try:
         start_date = datetime.datetime.fromtimestamp(meeting.start_date / 1000.0, tz=datetime.timezone.utc).date()
-    except Exception as _e:
+    except Exception:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail="Некорректное значение даты начала",
@@ -99,7 +99,7 @@ async def create_meeting(
 
     try:
         end_date = datetime.datetime.fromtimestamp(meeting.end_date / 1000.0, tz=datetime.timezone.utc).date()
-    except Exception as _e:
+    except Exception:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail="Некорректное значение даты окончания",
@@ -107,7 +107,7 @@ async def create_meeting(
 
     try:
         start_time = offset_to_time(offset=meeting.start_time)
-    except Exception as _e:
+    except Exception:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail="Некорректное значение времени начала",
@@ -115,7 +115,7 @@ async def create_meeting(
 
     try:
         end_time = offset_to_time(offset=meeting.end_time)
-    except Exception as _e:
+    except Exception:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             detail="Некорректное значение времени окончания",
@@ -183,3 +183,43 @@ async def create_meeting(
     await db.refresh(db_item)
 
     return db_item
+
+
+@router.delete(
+    path="/{meeting_id}/",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary='Удаление записи',
+)
+async def delete_meeting(
+    meeting_id: int,
+    archive: bool,
+    db: AsyncSession = Depends(get_db),
+    current_user_id: int = Depends(get_current_user_id),
+):
+
+    base_stmt = select(Meeting).where(
+        Meeting.id == meeting_id,
+    ).limit(1)
+
+    result = await db.execute(base_stmt)
+    meeting: Optional[Meeting] = result.scalar_one_or_none()
+
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Not found",
+        )
+
+    if current_user_id != meeting.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions"
+        )
+
+    if archive:
+        meeting.is_active = False
+        db.add(meeting)
+    else:
+        await db.delete(meeting)
+
+    await db.commit()
