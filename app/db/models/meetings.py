@@ -10,6 +10,19 @@ if TYPE_CHECKING:
     from app.db.models import User, Note
 
 
+def offset_to_time(offset: int) -> datetime.time:
+    """
+    Преобразует смещение от полуночи в миллисекундах в объект time.
+    Смещение должно быть в пределах 0..86399999 мс (24 часа - 1 мс).
+    """
+    # Переводим в секунды и ограничиваем сутками (86400 секунд)
+    total_seconds = (offset // 1000) % (24 * 3600)
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    return datetime.time(hours, minutes, seconds)
+
+
 class Meeting(Base):
     """ Встреча пользователя """
 

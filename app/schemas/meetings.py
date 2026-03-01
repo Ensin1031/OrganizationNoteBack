@@ -60,6 +60,7 @@ class MeetingRead(BaseModel):
 
 class MeetingCreate(BaseModel):
     """ для POST """
+    external_id: Optional[int] = None
     external_user_id: int
     title: str
     description: str

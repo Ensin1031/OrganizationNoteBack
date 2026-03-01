@@ -139,7 +139,7 @@ async def sync_note(
     else:
         db_item_updated_aware = db_item.updated_at
 
-    if not db_item.updated_at or (db_item.updated_at is not None and db_item_updated_aware < updated_at):
+    if (db_item_updated_aware is not None and db_item_updated_aware < updated_at) or db_item_updated_aware is None:
         db_item.parent_note_id = note.external_parent_note_id
         db_item.meeting_id = note.external_meeting_id
         db_item.title = note.title
@@ -147,8 +147,9 @@ async def sync_note(
         db_item.priority = priority
         db_item.is_active = note.is_active
         db_item.created_at = created_at
-        db_item.updated_at = dt_now
-    else:
+        db_item.updated_at = updated_at
+
+    if db_item.is_active != note.is_active:
         db_item.is_active = note.is_active
         db_item.updated_at = dt_now
 
