@@ -1,4 +1,3 @@
-import datetime
 from typing import Optional
 
 from fastapi import Depends, APIRouter, Query, HTTPException
@@ -7,9 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.db import get_db
-from app.db.models import Meeting
-from app.db.models.meetings import offset_to_time
-from app.schemas import PaginatedResponse, MeetingRead, MeetingCreate
+from app.db.models import Meeting, Note
+from app.schemas import PaginatedResponse, MeetingRead
+from app.schemas.meetings import SyncMeeting, SyncMeetingResponse
 from app.utils.request_with_token_data import get_current_user_id
 
 router = APIRouter(
@@ -51,138 +50,40 @@ async def get_meetings(
 
 @router.post(
     path="/",
-    response_model=MeetingRead,
+    response_model=SyncMeetingResponse,
     status_code=status.HTTP_200_OK,
 )
 async def create_meeting(
-    meeting: MeetingCreate,
+    sync_meeting_data: SyncMeeting,
     db: AsyncSession = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id),
 ):
+
+    meeting = sync_meeting_data.meeting
+
     if current_user_id != meeting.external_user_id:
         raise HTTPException(
             status_code=403,
             detail="Not enough permissions"
         )
 
-    dt_now = datetime.datetime.now(tz=datetime.timezone.utc)
-
-    if meeting.created_at is not None:
-        try:
-            created_at = datetime.datetime.fromtimestamp(meeting.created_at / 1000.0, tz=datetime.timezone.utc)
-        except Exception as _e:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail=str(_e),
-            )
-    else:
-        created_at = dt_now
-
-    if meeting.updated_at is not None:
-        try:
-            updated_at = datetime.datetime.fromtimestamp(meeting.updated_at / 1000.0, tz=datetime.timezone.utc)
-        except Exception as _e:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail=str(_e),
-            )
-    else:
-        updated_at = dt_now
-
     try:
-        start_date = datetime.datetime.fromtimestamp(meeting.start_date / 1000.0, tz=datetime.timezone.utc).date()
-    except Exception:
+        return {
+            'meeting': await Meeting.get_sync_meeting(db=db, meeting=sync_meeting_data.meeting),
+            'notes': [
+                await Note.get_sync_note(db=db, note_data=note) for note in sync_meeting_data.notes
+            ] if sync_meeting_data.notes else [],
+        }
+    except HTTPException as _e:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Некорректное значение даты начала",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=_e.detail,
         )
-
-    try:
-        end_date = datetime.datetime.fromtimestamp(meeting.end_date / 1000.0, tz=datetime.timezone.utc).date()
-    except Exception:
+    except Exception as _e:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Некорректное значение даты окончания",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(_e),
         )
-
-    try:
-        start_time = offset_to_time(offset=meeting.start_time)
-    except Exception:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Некорректное значение времени начала",
-        )
-
-    try:
-        end_time = offset_to_time(offset=meeting.end_time)
-    except Exception:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Некорректное значение времени окончания",
-        )
-
-    # валидация
-    if start_date > end_date:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Окончание (по дате) должно быть позже начала",
-        )
-    if start_time >= end_time:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Окончание (по времени) должно быть позже начала",
-        )
-
-    db_item = None
-    if meeting.external_id is not None:
-        base_stmt = select(Meeting).where(
-            Meeting.id == meeting.external_id,
-            Meeting.user_id == meeting.external_user_id,
-        ).limit(1)
-
-        result = await db.execute(base_stmt)
-        db_item: Optional[Meeting] = result.scalar_one_or_none()
-
-    if db_item is None:
-        db_item = Meeting(
-            user_id=meeting.external_user_id,
-            title=meeting.title or '',
-            description=meeting.description or '',
-            location=meeting.location or '',
-            is_active=meeting.is_active,
-            created_at=created_at,
-            updated_at=updated_at,
-            start_date=start_date,
-            end_date=end_date,
-            start_time=start_time,
-            end_time=end_time,
-        )
-    else:
-        if db_item.updated_at and db_item.updated_at.tzinfo is None:
-            db_item_updated_aware = db_item.updated_at.replace(tzinfo=datetime.timezone.utc)
-        else:
-            db_item_updated_aware = db_item.updated_at
-
-        if (db_item_updated_aware is not None and db_item_updated_aware < updated_at) or db_item_updated_aware is None:
-            db_item.updated_at = updated_at
-            db_item.created_at = created_at
-            db_item.title = meeting.title or ''
-            db_item.description = meeting.description or ''
-            db_item.location = meeting.location or ''
-            db_item.start_date = start_date
-            db_item.end_date = end_date
-            db_item.start_time = start_time
-            db_item.end_time = end_time
-
-        if db_item.is_active != meeting.is_active:
-            db_item.is_active = meeting.is_active
-            db_item.updated_at = dt_now
-
-    db.add(db_item)
-    await db.commit()
-    await db.refresh(db_item)
-
-    return db_item
 
 
 @router.delete(
@@ -218,8 +119,9 @@ async def delete_meeting(
 
     if archive:
         meeting.is_active = False
-        db.add(meeting)
     else:
-        await db.delete(meeting)
+        meeting.is_deleted = True
+
+    db.add(meeting)
 
     await db.commit()

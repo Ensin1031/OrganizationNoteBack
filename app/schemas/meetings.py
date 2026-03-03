@@ -1,12 +1,17 @@
 from datetime import datetime, date, time, timezone
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict, field_serializer, Field
+
+from app.schemas import NoteRead
+from app.schemas.notes import NoteSync
 
 
 class MeetingRead(BaseModel):
     """ для GET """
+    ka_id: Optional[int] = Field(validation_alias='ka_id', default=None)
     external_id: int = Field(validation_alias='id')
+    ka_user_id: int = Field(validation_alias='ka_user_id', default=None)
     external_user_id: int = Field(validation_alias='user_id')
     title: str
     description: str
@@ -60,7 +65,9 @@ class MeetingRead(BaseModel):
 
 class MeetingCreate(BaseModel):
     """ для POST """
+    id: Optional[int] = None
     external_id: Optional[int] = None
+    user_id: int
     external_user_id: int
     title: str
     description: str
@@ -74,6 +81,30 @@ class MeetingCreate(BaseModel):
     is_active: bool = True
 
     model_config = ConfigDict(extra="ignore")
+
+
+class SyncMeeting(BaseModel):
+    meeting: MeetingCreate
+    notes: List[NoteSync]
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class SyncMeetingResponse(BaseModel):
+    meeting: MeetingRead
+    notes: List[NoteRead]
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class SyncUserData(BaseModel):
+    meetings: List[SyncMeeting]
+    notes: List[NoteSync]
+
+
+class SyncUserDataResponse(BaseModel):
+    meetings: List[SyncMeetingResponse]
+    notes: List[NoteRead]
 
 
 class MeetingUpdate(BaseModel):
