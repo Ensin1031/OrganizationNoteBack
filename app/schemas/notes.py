@@ -8,9 +8,13 @@ from app.utils.note_priority_enum import NotePriority
 
 class NoteRead(BaseModel):
     """ для GET """
+    ka_id: Optional[int] = Field(validation_alias='ka_id', default=None)
     external_id: int = Field(validation_alias='id')
+    ka_user_id: int = Field(validation_alias='ka_user_id', default=None)
     external_user_id: int = Field(validation_alias='user_id')
+    ka_parent_note_id: Optional[int] = Field(validation_alias='ka_parent_note_id', default=None)
     external_parent_note_id: Optional[int] = Field(validation_alias='parent_note_id', default=None)
+    ka_meeting_id: Optional[int] = Field(validation_alias='ka_meeting_id', default=None)
     external_meeting_id: Optional[int] = Field(validation_alias='meeting_id', default=None)
     title: str
     content: str
@@ -69,9 +73,13 @@ class NoteCreate(BaseModel):
 
 
 class NoteSync(BaseModel):
+    id: Optional[int] = None
     external_id: Optional[int] = None
+    user_id: int
     external_user_id: int
+    parent_note_id: Optional[int] = None
     external_parent_note_id: Optional[int] = None
+    meeting_id: Optional[int] = None
     external_meeting_id: Optional[int] = None
     title: str
     content: str

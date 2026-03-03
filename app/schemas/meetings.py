@@ -1,7 +1,10 @@
 from datetime import datetime, date, time, timezone
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, ConfigDict, field_serializer, Field
+
+from app.schemas import NoteRead
+from app.schemas.notes import NoteSync
 
 
 class MeetingRead(BaseModel):
@@ -72,6 +75,20 @@ class MeetingCreate(BaseModel):
     created_at: Optional[int] = None
     updated_at: Optional[int] = None
     is_active: bool = True
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class SyncMeeting(BaseModel):
+    meeting: MeetingCreate
+    notes: List[NoteSync]
+
+    model_config = ConfigDict(extra="ignore")
+
+
+class SyncMeetingResponse(BaseModel):
+    meeting: MeetingRead
+    notes: List[NoteRead]
 
     model_config = ConfigDict(extra="ignore")
 

@@ -7,9 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from app.db import get_db
-from app.db.models import Meeting
+from app.db.models import Meeting, Note
 from app.db.models.meetings import offset_to_time
-from app.schemas import PaginatedResponse, MeetingRead, MeetingCreate
+from app.schemas import PaginatedResponse, MeetingRead
+from app.schemas.meetings import SyncMeeting, SyncMeetingResponse
 from app.utils.request_with_token_data import get_current_user_id
 
 router = APIRouter(
@@ -51,14 +52,17 @@ async def get_meetings(
 
 @router.post(
     path="/",
-    response_model=MeetingRead,
+    response_model=SyncMeetingResponse,
     status_code=status.HTTP_200_OK,
 )
 async def create_meeting(
-    meeting: MeetingCreate,
+    sync_meeting_data: SyncMeeting,
     db: AsyncSession = Depends(get_db),
     current_user_id: int = Depends(get_current_user_id),
 ):
+
+    meeting = sync_meeting_data.meeting
+
     if current_user_id != meeting.external_user_id:
         raise HTTPException(
             status_code=403,
@@ -182,7 +186,12 @@ async def create_meeting(
     await db.commit()
     await db.refresh(db_item)
 
-    return db_item
+    return {
+        'meeting': db_item,
+        'notes': [
+            await Note.get_sync_note(db=db, note_data=note) for note in sync_meeting_data.notes
+        ] if sync_meeting_data.notes else [],
+    }
 
 
 @router.delete(

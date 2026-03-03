@@ -71,92 +71,22 @@ async def sync_note(
 
     if current_user_id != note.external_user_id:
         raise HTTPException(
-            status_code=403,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
 
     try:
-        priority = getattr(NotePriority, note.priority)
-    except Exception:
+        return await Note.get_sync_note(db=db, note_data=note)
+    except HTTPException as _e:
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail="Некорректное значение приоритета",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=_e.detail,
         )
-
-    dt_now = datetime.datetime.now(tz=datetime.timezone.utc)
-
-    if note.created_at is not None:
-        try:
-            created_at = datetime.datetime.fromtimestamp(note.created_at / 1000.0, tz=datetime.timezone.utc)
-        except Exception as _e:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail=f'created_at: {_e}',
-            )
-    else:
-        created_at = dt_now
-
-    if note.updated_at is not None:
-        try:
-            updated_at = datetime.datetime.fromtimestamp(note.updated_at / 1000.0, tz=datetime.timezone.utc)
-        except Exception as _e:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail=f'updated_at: {_e}',
-            )
-    else:
-        updated_at = dt_now
-
-    db_item = None
-    if note.external_id:
-        base_stmt = select(Note).where(
-            Note.id == note.external_id,
-            Note.user_id == note.external_user_id,
-        ).limit(1)
-
-        result = await db.execute(base_stmt)
-        db_item: Optional[Note] = result.scalar_one_or_none()
-
-    if db_item is None:
-        db_item = Note(
-            user_id=note.external_user_id,
-            parent_note_id=note.external_parent_note_id,
-            meeting_id=note.external_meeting_id,
-            title=note.title,
-            content=note.content,
-            priority=priority,
-            created_at=created_at,
-            updated_at=dt_now,
-            is_active=note.is_active,
+    except Exception as _e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(_e),
         )
-        db.add(db_item)
-        await db.commit()
-        await db.refresh(db_item)
-        return db_item
-
-    if db_item.updated_at and db_item.updated_at.tzinfo is None:
-        db_item_updated_aware = db_item.updated_at.replace(tzinfo=datetime.timezone.utc)
-    else:
-        db_item_updated_aware = db_item.updated_at
-
-    if (db_item_updated_aware is not None and db_item_updated_aware < updated_at) or db_item_updated_aware is None:
-        db_item.parent_note_id = note.external_parent_note_id
-        db_item.meeting_id = note.external_meeting_id
-        db_item.title = note.title
-        db_item.content = note.content
-        db_item.priority = priority
-        db_item.is_active = note.is_active
-        db_item.created_at = created_at
-        db_item.updated_at = updated_at
-
-    if db_item.is_active != note.is_active:
-        db_item.is_active = note.is_active
-        db_item.updated_at = dt_now
-
-    db.add(db_item)
-    await db.commit()
-    await db.refresh(db_item)
-    return db_item
 
 
 @router.post(
