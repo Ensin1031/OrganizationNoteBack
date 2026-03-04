@@ -44,7 +44,7 @@
 ## Инструкция по развёртыванию локально
 
 ### Предварительные требования
-- **Python 3.11+** [скачать](https://www.python.org/downloads/)
+- **Python 3.12+** [скачать](https://www.python.org/downloads/)
 - **Git** [скачать](https://github.com/) либо [скачать](https://git-scm.com/)
 - **SQLite** (опционально, для разработки)
 
@@ -68,7 +68,7 @@
     pip install -r requirements.txt
     ```
 
-4. ***Настройте переменные окружения***
+4. ***Настройте переменные окружения***    
     В базовой версии, если устраивают стандартные настройки - не требуется.
     Создайте файл **.env** в корне проекта
     ```bash
@@ -86,7 +86,7 @@
    
 5. ***Запуск сервера (локальный запуск)***
     ```commandline
-    uvicorn app.main:app --reload --port 5000
+    uvicorn app.main:app --host 0.0.0.0 --reload --port 5000
     ```
     Для остановки всех процессов на порту работы микросервиса
     ```commandline
@@ -98,17 +98,9 @@
       ```commandline
       http://127.0.0.1:5000/api/v1/swagger
       ```
-      либо
-      ```commandline
-      http://127.0.0.1:5000/swagger
-      ```
    - REDOC:
       ```commandline
       http://127.0.0.1:5000/api/v1/redoc
-      ```
-      либо
-      ```commandline
-      http://127.0.0.1:5000/redoc
       ```
 
 ---
