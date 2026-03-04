@@ -160,7 +160,6 @@ async def create_note(
 @router.delete(
     path="/{note_id}/",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary='Удаление записи',
 )
 async def delete_note(
     note_id: int,
