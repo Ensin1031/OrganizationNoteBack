@@ -44,12 +44,12 @@ class Settings(BaseSettings):
     )
 
     app_title: str = Field(
-        default="Сервис лицензирования",
+        default="API системы ведения рабочих заметок и встреч",
         description="Имя проекта",
     )
 
     app_description: str = Field(
-        default="Сервис лицензирования",
+        default="Серверная часть (бэкенд) для системы ведения рабочих заметок и встреч",
         description="Описание проекта",
     )
 
@@ -61,11 +61,6 @@ class Settings(BaseSettings):
     debug: bool = Field(
         default=False,
         description="Режим отладки",
-    )
-
-    backend_host: str = Field(
-        default="",
-        description="Хост бэкенда монолита"
     )
 
     secret_key: str = Field(
