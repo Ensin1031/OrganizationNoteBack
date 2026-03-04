@@ -44,7 +44,7 @@
 ## Инструкция по развёртыванию локально
 
 ### Предварительные требования
-- **Python 3.11+** [скачать](https://www.python.org/downloads/)
+- **Python 3.12+** [скачать](https://www.python.org/downloads/)
 - **Git** [скачать](https://github.com/) либо [скачать](https://git-scm.com/)
 - **SQLite** (опционально, для разработки)
 
